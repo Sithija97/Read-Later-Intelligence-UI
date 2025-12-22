@@ -1,24 +1,27 @@
-import React from 'react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useSignIn } from "@clerk/clerk-react";
 
 const SignIn = () => {
-  const handleGoogleSignIn = () => {
-    // TODO: Implement Google sign-in logic
-    console.log('Sign in with Google')
-  }
+  const { signIn } = useSignIn();
+
+  const handleGoogleSignIn = async () => {
+    if (!signIn) return;
+
+    await signIn.authenticateWithRedirect({
+      strategy: "oauth_google",
+      redirectUrl: "/",
+      redirectUrlComplete: "/",
+    });
+  };
 
   return (
     <main className="min-h-screen flex items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
-        <div className={cn(
-          'transition-opacity duration-300 opacity-100'
-        )}>
+        <div className={cn("transition-opacity duration-300 opacity-100")}>
           {/* Heading */}
           <div className="mb-12 text-center">
-            <h1 className="text-3xl font-semibold mb-2">
-              Read what you save
-            </h1>
+            <h1 className="text-3xl font-semibold mb-2">Read what you save</h1>
             <p className="text-muted-foreground">
               A calm place to finish articles you didn't have time for earlier
             </p>
@@ -69,7 +72,7 @@ const SignIn = () => {
         </div>
       </div>
     </main>
-  )
-}
+  );
+};
 
-export default SignIn
+export default SignIn;

@@ -86,12 +86,12 @@ const routes: RouteConfig[] = [
     useBaseLayout: true,
     headerVariant: "minimal",
   },
-   {
+  {
     path: "/reading-view/:id",
     element: <ReadingView />,
     useBaseLayout: true,
     headerVariant: "minimal",
-  }
+  },
 ];
 
 function AppRoutes() {
