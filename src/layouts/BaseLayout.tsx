@@ -3,6 +3,7 @@ import AppHeader from "@/components/common/AppHeader";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
 import { SpinnerCustom } from "@/components/common/Spinner";
+import { useSyncUser } from "@/hooks/useSyncUser";
 
 interface BaseLayoutProps {
   variant?: "default" | "minimal" | "hidden";
@@ -12,6 +13,16 @@ interface BaseLayoutProps {
 const BaseLayout = ({ variant = "default", children }: BaseLayoutProps) => {
   const { userId, isLoaded, isSignedIn } = useAuth();
   const navigate = useNavigate();
+
+  // Sync user details to MongoDB after successful authentication
+  useSyncUser({
+    onSuccess: (data) => {
+      console.log("User synced successfully:", data);
+    },
+    onError: (error) => {
+      console.error("Failed to sync user:", error);
+    },
+  });
 
   useEffect(() => {
     if (isLoaded && !userId) {
