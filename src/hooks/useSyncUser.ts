@@ -1,11 +1,11 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef } from "react";
 import { useAuth } from "@clerk/clerk-react";
-import { useApiClient } from "./useApiClient";
+import { useSyncUserMutation } from "@/services/queries";
 
 /**
- * Hook to sync user details to MongoDB after successful Google sign in/sign up
- * This hook automatically calls the sync-user endpoint when the user is authenticated
- * 
+ * Hook to sync user details to MongoDB after successful authentication
+ * Uses React Query mutation for proper state management
+ *
  * @param options - Configuration options
  * @param options.onSuccess - Callback when sync is successful
  * @param options.onError - Callback when sync fails
@@ -17,25 +17,14 @@ export const useSyncUser = (options?: {
   enabled?: boolean;
 }) => {
   const { isSignedIn, isLoaded } = useAuth();
-  const api = useApiClient();
+  const syncUserMutation = useSyncUserMutation();
   const hasSyncedRef = useRef(false);
-  const isSyncingRef = useRef(false);
-  
-  // Store callbacks in refs to avoid unnecessary re-renders
-  const onSuccessRef = useRef(options?.onSuccess);
-  const onErrorRef = useRef(options?.onError);
-  
-  // Update refs when callbacks change
-  useEffect(() => {
-    onSuccessRef.current = options?.onSuccess;
-    onErrorRef.current = options?.onError;
-  }, [options?.onSuccess, options?.onError]);
 
-  const syncUser = useCallback(async () => {
+  useEffect(() => {
     // Only sync if:
     // 1. Auth is loaded
     // 2. User is signed in
-    // 3. Enabled option is true (or not provided, default true)
+    // 3. Enabled option is not explicitly false
     // 4. Haven't synced yet in this session
     // 5. Not currently syncing
     if (
@@ -43,35 +32,26 @@ export const useSyncUser = (options?: {
       !isSignedIn ||
       options?.enabled === false ||
       hasSyncedRef.current ||
-      isSyncingRef.current
+      syncUserMutation.isPending
     ) {
       return;
     }
 
-    isSyncingRef.current = true;
-
-    try {
-      const response = await api.post("/auth/sync-user");
-      hasSyncedRef.current = true;
-      
-      if (onSuccessRef.current) {
-        onSuccessRef.current(response.data);
-      }
-    } catch (error) {
-      // Log error but don't block the app
-      console.error("Failed to sync user:", error);
-      
-      if (onErrorRef.current) {
-        onErrorRef.current(error instanceof Error ? error : new Error("Unknown error"));
-      }
-    } finally {
-      isSyncingRef.current = false;
-    }
-  }, [isLoaded, isSignedIn, options?.enabled, api]);
-
-  useEffect(() => {
-    syncUser();
-  }, [syncUser]);
+    // Trigger sync
+    syncUserMutation.mutate(undefined, {
+      onSuccess: (data) => {
+        hasSyncedRef.current = true;
+        console.log("User synced successfully:", data);
+        options?.onSuccess?.(data);
+      },
+      onError: (error) => {
+        console.error("Failed to sync user:", error);
+        options?.onError?.(
+          error instanceof Error ? error : new Error("Unknown error")
+        );
+      },
+    });
+  }, [isLoaded, isSignedIn, options?.enabled, syncUserMutation, options]);
 
   // Reset sync flag when user signs out
   useEffect(() => {
@@ -80,4 +60,3 @@ export const useSyncUser = (options?: {
     }
   }, [isSignedIn]);
 };
-

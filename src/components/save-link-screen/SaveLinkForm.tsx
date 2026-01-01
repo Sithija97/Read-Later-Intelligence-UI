@@ -3,15 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { cn } from "@/lib/utils";
-import { useApiClient } from "@/hooks/useApiClient";
+import { useCreateItem } from "@/services/queries";
 import { ApiError } from "@/services/api";
 
 const SaveLinkForm = () => {
   const navigate = useNavigate();
-  const api = useApiClient();
+  const createItemMutation = useCreateItem();
   const [isClient, setIsClient] = useState(true);
   const [url, setUrl] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -55,29 +54,26 @@ const SaveLinkForm = () => {
       return;
     }
 
-    // Set loading state
-    setIsLoading(true);
-
     try {
-      // Make health check API call
-      const response = await api.get("/health");
+      // Create item via API
+      const response = await createItemMutation.mutateAsync({ url });
+      console.log("Item created:", response);
 
-      // Health check successful, proceed with saving
-      // Store URL in sessionStorage for processing state to access
+      // Store item data in sessionStorage for processing state to access
       if (typeof window !== "undefined") {
-        sessionStorage.setItem("articleUrl", url);
+        // sessionStorage.setItem("articleUrl", url);
+        // sessionStorage.setItem("itemId", response.data.id);
+        // sessionStorage.setItem("itemStatus", response.data.status);
         navigate("/loading");
       }
     } catch (err) {
       // Handle API errors
       if (err instanceof ApiError) {
-        setError(`API Error: ${err.status} ${err.statusText}`);
+        setError((err.data as { message?: string })?.message || (err instanceof Error ? err.message : '') || `Error: ${err.status} ${err.statusText}`);
       } else {
-        setError("Failed to connect to server. Please try again.");
+        setError("Failed to save article. Please try again.");
       }
-      console.error("Health check failed:", err);
-    } finally {
-      setIsLoading(false);
+      console.error("Create item failed:", err);
     }
   };
 
@@ -110,7 +106,7 @@ const SaveLinkForm = () => {
               setUrl(e.target.value);
               setError("");
             }}
-            disabled={isLoading}
+            disabled={createItemMutation.isPending}
             className={cn(
               "text-base py-6 px-4",
               error && "border-destructive focus-visible:ring-destructive"
@@ -128,11 +124,11 @@ const SaveLinkForm = () => {
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={isLoading || !url.trim()}
+          disabled={createItemMutation.isPending || !url.trim()}
           className="w-full py-6 text-base"
           size="lg"
         >
-          {isLoading ? "Analyzing..." : "Save & Analyze"}
+          {createItemMutation.isPending ? "Saving..." : "Save & Analyze"}
         </Button>
       </form>
 
