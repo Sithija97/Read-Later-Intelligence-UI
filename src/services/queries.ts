@@ -20,13 +20,41 @@ export const queryKeys = {
 /**
  * Types for API requests/responses
  */
+export interface ApiSuccessPayload<T> {
+  status: "success";
+  message?: string;
+  data: T;
+}
+
+export interface ApiErrorPayload {
+  status: "error";
+  message: string;
+  errors?: unknown;
+}
+
 export interface CreateItemRequest {
   url: string;
 }
 
-export interface CreateItemResponse {
+export interface CreateItemPayload {
   id: string;
   status: string;
+}
+
+export interface ItemResponse {
+  id: string;
+  url: string;
+  title?: string;
+  source?: string;
+  wordCount?: number;
+  readingTimeMinutes?: number;
+  difficulty?: "easy" | "medium" | "hard";
+  summary?: string[];
+  content?: string;
+  status: "created" | "processing" | "ready" | "failed" | "read";
+  savedAt: string;
+  isCompleted?: boolean;
+  isSkimmed?: boolean;
 }
 
 /**
@@ -102,9 +130,12 @@ export const useSyncUserMutation = () => {
  * Saves a new article URL for processing
  */
 export const useCreateItem = () => {
-  return createApiMutation<CreateItemResponse, CreateItemRequest>(
+  return createApiMutation<
+    ApiSuccessPayload<CreateItemPayload>,
+    CreateItemRequest
+  >(
     async (api, variables) => {
-      return await api.post<CreateItemResponse>(
+      return await api.post<ApiSuccessPayload<CreateItemPayload>>(
         "/items/create-item",
         variables
       );
@@ -116,6 +147,39 @@ export const useCreateItem = () => {
       onError: (error) => {
         console.error("Failed to create item:", error);
       },
+    }
+  )();
+};
+
+/**
+ * Get Item by ID Query
+ * Fetches a single item with all metadata
+ */
+export const useGetItem = (itemId: string, options?: { enabled?: boolean }) => {
+  return createApiQuery<ApiSuccessPayload<ItemResponse>>(
+    `/items/items/${itemId}`,
+    undefined,
+    {
+      enabled: options?.enabled ?? !!itemId,
+      refetchInterval: (query) => {
+        // Auto-refetch every 2 seconds if status is "processing"
+        const status = query.state.data?.data.data?.status;
+        return status === "processing" ? 2000 : false;
+      },
+    }
+  )();
+};
+
+/**
+ * Get All Items Query
+ * Fetches all items for the authenticated user
+ */
+export const useGetItems = (status?: string) => {
+  return createApiQuery<ApiSuccessPayload<ItemResponse[]>>(
+    "/items/items",
+    { params: status ? { status } : undefined },
+    {
+      staleTime: 1000 * 30, // 30 seconds
     }
   )();
 };

@@ -13,6 +13,18 @@ const SaveLinkForm = () => {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
 
+  const persistActiveItemContext = (
+    itemId: string,
+    originalUrl: string,
+    status: string
+  ) => {
+    if (typeof window === "undefined") return;
+
+    sessionStorage.setItem("activeItemId", itemId);
+    sessionStorage.setItem("activeItemUrl", originalUrl);
+    sessionStorage.setItem("activeItemStatus", status);
+  };
+
   useEffect(() => {
     // Hydration: switch to pre-client state
     setIsClient(false);
@@ -57,19 +69,25 @@ const SaveLinkForm = () => {
     try {
       // Create item via API
       const response = await createItemMutation.mutateAsync({ url });
-      console.log("Item created:", response);
+      const createdItem = response.data?.data;
+      console.log("Item created:", createdItem);
+
+      if (!createdItem?.id) {
+        throw new Error("Failed to create item. Missing item identifier.");
+      }
 
       // Store item data in sessionStorage for processing state to access
-      if (typeof window !== "undefined") {
-        // sessionStorage.setItem("articleUrl", url);
-        // sessionStorage.setItem("itemId", response.data.id);
-        // sessionStorage.setItem("itemStatus", response.data.status);
-        navigate("/loading");
-      }
+      persistActiveItemContext(createdItem.id, url.trim(), createdItem.status);
+
+      navigate(`/loading?itemId=${encodeURIComponent(createdItem.id)}`);
     } catch (err) {
       // Handle API errors
       if (err instanceof ApiError) {
-        setError((err.data as { message?: string })?.message || (err instanceof Error ? err.message : '') || `Error: ${err.status} ${err.statusText}`);
+        setError(
+          (err.data as { message?: string })?.message ||
+            (err instanceof Error ? err.message : "") ||
+            `Error: ${err.status} ${err.statusText}`
+        );
       } else {
         setError("Failed to save article. Please try again.");
       }
