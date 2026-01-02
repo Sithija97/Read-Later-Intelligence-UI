@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useSignIn } from "@clerk/clerk-react";
+import { useSignIn, SignIn as SignInWithGoogle } from "@clerk/clerk-react";
 import googleIcon from "@/assets/google.svg";
 
 const SignIn = () => {
@@ -30,7 +30,7 @@ const SignIn = () => {
 
           {/* Google Sign In Button */}
           <div className="space-y-6">
-            <Button
+            {/* <Button
               type="button"
               onClick={handleGoogleSignIn}
               variant="outline"
@@ -39,7 +39,8 @@ const SignIn = () => {
             >
               <img src={googleIcon} alt="Google" className="h-5 w-5" />
               <span>Continue with Google</span>
-            </Button>
+            </Button> */}
+            <SignInWithGoogle />
 
             {/* Footer text */}
             <p className="text-sm text-muted-foreground text-center">
