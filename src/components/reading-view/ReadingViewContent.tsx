@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import parse from "html-react-parser";
 
 interface ReadingViewContentProps {
   content: string;
@@ -24,7 +25,7 @@ const ReadingViewContent = ({ content }: ReadingViewContentProps) => {
       <div className="reading-content">
         {paragraphs.map((paragraph, index) => (
           <p key={index} className="mb-6">
-            {paragraph.trim()}
+            {parse(paragraph.trim())}
           </p>
         ))}
       </div>
